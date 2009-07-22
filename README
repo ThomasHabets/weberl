@@ -18,7 +18,13 @@ project is how I evision it.
 
 How can I help?
 ---------------
-* Package it
+In order of importance:
 * Make it work with FastCGI
+* Template system
+* Package it
 * Make it work with built-in webservers (yaws or something)
 
+License
+-------
+I'm thinking BSD license. Maybe public domain since that's what web.py
+uses. Nothin settled yet.
