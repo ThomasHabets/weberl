@@ -73,12 +73,12 @@ spawnHandlers(Urls) ->
                     pid = spawn(Mod, Fun,[])},
     [Hand|spawnHandlers(Tail3)].
 
-%
-% Log functions
-%
+%%
+%% Log functions
+%%
 logLoop() ->
     receive
-        {Who, Mod, Fun, Str} ->
+        {_Who, Mod, Fun, Str} ->
             io:format("Log ~s:~s()> ~s~n", [Mod,Fun,Str]);
         _ ->
             io:format("Log ??:??> Invalid message sent to logger~n")
@@ -93,9 +93,9 @@ log(AppData, Fun, Str) ->
 log(AppData, Mod, Fun, Str) ->
     AppData#appData.logger ! {self(), Mod, Fun, Str}.
 
-%
-% Start up the app. Triggered by a 'run' signal to the app process.
-%
+%%
+%% Start up the app. Triggered by a 'run' signal to the app process.
+%%
 doRun(AppData) ->
     log(AppData, "doRun", "enter func"),
     #appData{urls=Urls} = AppData,
@@ -171,12 +171,12 @@ applicationInit(AppData) ->
 applicationLoop(AppData) ->
     log(AppData, "applicationLoop", "Enterfunction"),
     receive
-        {Who, urls, Urls} ->
+        {_Who, urls, Urls} ->
             NewAppData = AppData#appData{urls = Urls},
             ?MODULE:applicationLoop(NewAppData);
-        {Who, run} ->
+        {_Who, run} ->
             ?MODULE:applicationLoop(doRun(AppData));
-        {Who, test} ->
+        {_Who, test} ->
             doTest(AppData),
             ?MODULE:applicationLoop(AppData)
     end.
