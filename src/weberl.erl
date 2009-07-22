@@ -32,12 +32,12 @@ multiHandler(Mod, Func, Num, Handlers) ->
         {Who, multiHandler, getHandlerCount} ->
             Who ! {handlerCount, Num},
             multiHandler(Mod, Func, Num, Handlers);
-        {Who, multiHandler, setHandlerCount, NewNum} ->
+        {_Who, multiHandler, setHandlerCount, _NewNum} ->
             % FIXME
             multiHandler(Mod, Func, Num, Handlers);
         Any ->
             % FIXME: round robin
-            [H|Tail] = Handlers,
+            [H|_Tail] = Handlers,
             H ! Any,
             multiHandler(Mod, Func, Num, Handlers)
     end.
@@ -61,7 +61,7 @@ log(AppData, Mod, Fun, Str) ->
 doRun(AppData) ->
     log(AppData, "doRun", "enter func"),
     #appData{urls=Urls} = AppData,
-    #appData{handlers = doRunSpawn(Urls)}.
+    AppData#appData{handlers = doRunSpawn(Urls)}.
 
 runGet(AppData, Url) ->
     #appData{handlers = Hands} = AppData,
@@ -72,13 +72,10 @@ runGet2([], AppData, Url) ->
     AppData;
 runGet2(Hands, AppData, Url) ->
     [Hand|Tail] = Hands,
-    io:format("Testing <~s> <~s> ~n", [Url, Hand#handler.url]),
     case re:run(Url, "^" ++ Hand#handler.url ++ "$$" ) of
         {match,Match} ->
-            io:format("Match~n"),
             runGet3(Hand, AppData, Url, Match);
         nomatch     ->
-            io:format("noMatch~n"),
             runGet2(Tail, AppData, Url)
     end.
 
@@ -88,26 +85,25 @@ getRegexStrings(Str, Capture) ->
     [{S,D}|T] = Capture,
     [string:substr(Str, S+1, D)|getRegexStrings(Str, T)].
 runGet3(Hand, AppData, Url, Match) ->
-    io:format("runGet3() ~n"),
+    log(AppData, "runGet3", "enter function"),
     P = getRegexStrings(Url, Match),
-    [H|T] = P,
     Handle = 123, % FIXME
-    Hand#handler.pid ! {self(), Handle, get, []},
+    Hand#handler.pid ! {self(), Handle, get, P},
     Handle.
 
 % Run in the context of the app
 doTestLoop(AppData) ->
     receive
         {Who, H, getReply, {ok, Msg}} ->
-            io:format("App returned> <~s>~n", [Msg]),
+            io:format("TEST returned: <~s>~n", [Msg]),
             doTestLoop(AppData)
     after 1000 ->
-            io:format("doTest() timeout~n"),
+            io:format("TEST done (timeout)~n"),
             AppData
     end.
 
 doTest(AppData) ->
-    io:format("weberl:app> doTest()~n"),
+    log(AppData, "doTest", "app> doTest()"),
     runGet(AppData, "/"),
     runGet(AppData, "/2009/07"),
     doTestLoop(AppData).
@@ -127,17 +123,19 @@ logInit() ->
 
 applicationInit(AppData) ->
     LogPid = spawn(?MODULE, logInit, []),
+    io:format("First ~n"),
+    io:format("Lala2~n"),
     AppData2 = AppData#appData{logger = LogPid},
     applicationLoop(AppData2).
 
 applicationLoop(AppData) ->
-    %log(AppData, "applicationLoop", "Enterfunction"),
+    log(AppData, "applicationLoop", "Enterfunction"),
     receive
-        {Who, run} ->
-            applicationLoop(doRun(AppData));
         {Who, urls, Urls} ->
             NewAppData = AppData#appData{urls = Urls},
             applicationLoop(NewAppData);
+        {Who, run} ->
+            applicationLoop(doRun(AppData));
         {Who, test} ->
             doTest(AppData),
             applicationLoop(AppData)
