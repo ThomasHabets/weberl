@@ -2,7 +2,8 @@
 
 -export([
          application/1,
-         applicationLoop/1,
+         applicationInit/1,
+         logInit/0,
          multiHandler/3,
          multiHandler/4,
          getRegexStrings/2
@@ -15,7 +16,9 @@
           
 -record(appData, {
           urls,
-          handlers = []
+          handlers = [],
+          logger,
+          logLevel = 0
           }).
 
 multiHandler(Mod, Func, Num) ->
@@ -24,7 +27,6 @@ multiHandler(Mod, Func, Num) ->
                                          [])
                          end, lists:seq(1, Num)),
     multiHandler(Mod, Func, Num, Handlers).
-
 multiHandler(Mod, Func, Num, Handlers) ->
     receive
         {Who, multiHandler, getHandlerCount} ->
@@ -40,14 +42,6 @@ multiHandler(Mod, Func, Num, Handlers) ->
             multiHandler(Mod, Func, Num, Handlers)
     end.
 
-foo([]) ->
-    [];
-foo(Urls) ->
-    [Url|Tail1] = Urls,
-    [Mod|Tail2] = Tail1,
-    [Func|Tail3] = Tail2,
-    [spawn(weberl, multiHandler, [Mod,Func,3])|foo(Tail3)].
-
 % Run in the context of the app
 doRunSpawn([]) ->
     [];
@@ -58,12 +52,16 @@ doRunSpawn(Urls) ->
     Hand = #handler{url = Url,
                     pid = spawn(Mod, Fun,[])},
     [Hand|doRunSpawn(Tail3)].
-   
+
+log(AppData, Fun, Str) ->
+    log(AppData, ?MODULE, Fun, Str).
+log(AppData, Mod, Fun, Str) ->
+    AppData#appData.logger ! {self(), Mod, Fun, Str}.
+
 doRun(AppData) ->
-    io:format("weberl:app> doRun()~n"),
+    log(AppData, "doRun", "enter func"),
     #appData{urls=Urls} = AppData,
     #appData{handlers = doRunSpawn(Urls)}.
-
 
 runGet(AppData, Url) ->
     #appData{handlers = Hands} = AppData,
@@ -92,13 +90,9 @@ getRegexStrings(Str, Capture) ->
 runGet3(Hand, AppData, Url, Match) ->
     io:format("runGet3() ~n"),
     P = getRegexStrings(Url, Match),
-    io:format("lala 2~n"),
     [H|T] = P,
-    io:format("lala 2.5~n"),
     Handle = 123, % FIXME
-    io:format("lala 3~n"),
     Hand#handler.pid ! {self(), Handle, get, []},
-    io:format("lala 4~n"),
     Handle.
 
 % Run in the context of the app
@@ -118,8 +112,26 @@ doTest(AppData) ->
     runGet(AppData, "/2009/07"),
     doTestLoop(AppData).
 
+
+logLoop() ->
+    receive
+        {Who, Mod, Fun, Str} ->
+            io:format("Log ~s:~s()> ~s~n", [Mod,Fun,Str]);
+        _ ->
+            io:format("Log ??:??> Invalid message sent to logger~n")
+    end,
+    logLoop().
+
+logInit() ->
+    logLoop().
+
+applicationInit(AppData) ->
+    LogPid = spawn(?MODULE, logInit, []),
+    AppData2 = AppData#appData{logger = LogPid},
+    applicationLoop(AppData2).
+
 applicationLoop(AppData) ->
-    io:format("applicationLoop()~n"),
+    %log(AppData, "applicationLoop", "Enterfunction"),
     receive
         {Who, run} ->
             applicationLoop(doRun(AppData));
@@ -131,7 +143,11 @@ applicationLoop(AppData) ->
             applicationLoop(AppData)
     end.
 
+%
+% User functions
+%
 application(Urls) ->
-    App = spawn(?MODULE, applicationLoop, [#appData{}]),
+    App = spawn(?MODULE, applicationInit, [#appData{}]),
     App ! {self(), urls, Urls},
+    App ! {self(), debug, 1},
     App.

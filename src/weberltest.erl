@@ -31,8 +31,8 @@ testHandler2() ->
 
 test() ->
     App = weberl:application([
-                              "/([0-9]+)/([0-9]+)", ?MODULE, testHandler2,
-                              "/",            ?MODULE, testHandler1
+                              "/(\\d+)/(\\d+)", ?MODULE, testHandler2,
+                              "/",              ?MODULE, testHandler1
                              ]),
     App ! {self(), run},
     App ! {self(), test}.
