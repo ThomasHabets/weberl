@@ -1,0 +1,24 @@
+Web.erl
+
+ By Thomas Habets <thomas@habets.pp.se>
+
+What is it?
+-----------
+Like web.py (http://webpy.org), but for erlang.
+
+
+How do I start?
+---------------
+An example project is weberltest.erl. You can run it by going into the
+src dir and running "make run".
+
+The library functionality isn't very far along yet, but the example
+project is how I evision it.
+
+
+How can I help?
+---------------
+* Package it
+* Make it work with FastCGI
+* Make it work with built-in webservers (yaws or something)
+
