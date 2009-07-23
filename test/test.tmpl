@@ -1,0 +1,18 @@
+$def with (menuitems, years)
+<blah>
+<blah>
+<blah>
+<blah>
+<ul>
+$for (item,foo) in menuitems:
+  <hr>
+  <hr>
+  <hr>
+  <li>$item $foo</li>
+</ul>
+
+$for foo in menuitems:
+  outer
+  $for bar in years:
+    inner
+ea
