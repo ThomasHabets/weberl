@@ -15,14 +15,40 @@ src dir and running "make run".
 The library functionality isn't very far along yet, but the example
 project is how I evision it.
 
-
 How can I help?
 ---------------
 In order of importance:
 * Make it work with FastCGI
-* Template system
+* Template system (see template section of this file)
 * Package it
 * Make it work with built-in webservers (yaws or something)
+
+Templates
+---------
+Templates are compiled into erlang code and included into the handler module.
+
+Erlang code doesn't work well for discreet inline code, so the
+templating language is more like that of web.py.
+
+    $def with (menuitems, year)
+    <ul>
+    $for (item,foo) in menuitems:
+      <li>$item $foo</li>
+    </ul>
+
+This template is then called with myTemplate([{foo, bar}], 2009).
+
+myTemplate_loop1([], S) ->
+  S;
+myTemplate_loop1(L, S) ->
+  [H|T] = L,
+  {A,B} = H,
+  S2 = S ++ "<li>" ++ A ++ " " ++ B ++ "</li>",
+  myTemplate_loop1(T, S).
+myTemplate(Parm1, Parm2) ->
+  "<ul>" ++ myTemplate_loop1(Parm1, "") ++ "</ul>".
+
+(the templating language is not implemented yet. So the design is not final)
 
 License
 -------
